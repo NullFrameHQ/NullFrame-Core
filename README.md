@@ -10,7 +10,7 @@ As of now, NullFrame Core contains an amusingly fast terrain snapshot-generation
 
 #### Then, what mod's core parts does NullFrame Core contain right now? 
 
-The answer is the core parts of the mod Myelin, specifically the chunk snapshot-generation engine.
+The answer is the core parts of the mod [Myelin](https://github.com/NullFrameHQ/Myelin), specifically the chunk snapshot-generation engine.
 
 ---
 
