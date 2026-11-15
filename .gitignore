@@ -1,0 +1,10 @@
+.gradle/
+build/
+build-*/
+bin/
+.idea/
+.vscode/
+*.iml
+.env
+.env.*
+local.properties

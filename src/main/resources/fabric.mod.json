@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "id": "nullframe-core",
+  "version": "0.1.1",
+  "name": "NullFrame Core",
+  "license": "LGPL-3.0-only",
+  "icon": "assets/icon.png",
+  "description": "A lib mod that shouldn't exist.",
+  "environment": "*",
+  "entrypoints": {},
+  "depends": {
+    "fabricloader": ">=0.17.0",
+    "minecraft": "1.21.1",
+    "java": ">=21"
+  }
+}
