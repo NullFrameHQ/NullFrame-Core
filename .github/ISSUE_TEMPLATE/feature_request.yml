@@ -1,0 +1,54 @@
+name: Feature request
+description: Suggest an improvement or a new capability for Core
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please check existing issues and the README before opening a request. Requests that explain the problem they solve are much easier to act on.
+
+        Core is a library that other mods build on, so requests about its API, supported platforms and generation output are especially useful.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: Describe the situation you are in, not only the feature you want.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: How do you imagine it working? For an API change, a rough example of how you would call it helps. A rough description is fine.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: How important is this for you?
+      description: Your opinion helps us plan. The maintainer sets the final priority.
+      options:
+        - "S - I cannot use Core without this"
+        - "A - Important, I would use it often"
+        - "B - Nice to have"
+        - "C - Someday, if there is time"
+    validations:
+      required: false
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues and did not find this request.
+          required: true

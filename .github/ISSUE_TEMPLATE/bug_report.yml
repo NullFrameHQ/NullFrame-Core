@@ -1,0 +1,128 @@
+name: Bug report
+description: Report a crash, a native library problem, wrong output or a build problem
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this. Please search existing issues first, and fill in as much of the form as you can.
+
+        If the problem is about Flight Mode, terrain in game, or multiplayer, it most likely belongs in [Myelin's tracker](https://github.com/NullFrameHQ/myelin/issues/new/choose). Report it here if it is a crash in the native library, a loading problem, or an issue with Core itself.
+
+  - type: dropdown
+    id: problem-type
+    attributes:
+      label: Type of problem
+      options:
+        - Game or JVM crash
+        - Native library fails to load
+        - Wrong or inconsistent terrain or biome output
+        - Slow generation (performance)
+        - Build or API problem when using Core as a dependency
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: How serious is this for you?
+      description: Your opinion helps us sort reports. The maintainer sets the final severity.
+      options:
+        - "S - Blocker: crash, freeze, or Core cannot load at all"
+        - "A - Major: wrong output on a common setup, or a large slowdown"
+        - "B - Minor: rare case, or a workaround exists"
+        - "C - Cosmetic: typo, log noise, or a small documentation issue"
+    validations:
+      required: false
+
+  - type: input
+    id: core-version
+    attributes:
+      label: NullFrame Core version
+      placeholder: "0.1.1"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: usage
+    attributes:
+      label: How are you using Core?
+      options:
+        - Through Myelin
+        - Through another mod
+        - Directly, in my own code
+        - The benchmark tools (cubiomes_bench or sweep)
+    validations:
+      required: true
+
+  - type: input
+    id: myelin-version
+    attributes:
+      label: Myelin version
+      description: Only if you are using Core through Myelin.
+      placeholder: "0.1.0"
+    validations:
+      required: false
+
+  - type: input
+    id: java-version
+    attributes:
+      label: Java version
+      description: The first line of the output of `java -version`. Core requires Java 21.
+      placeholder: "openjdk version \"21.0.5\""
+    validations:
+      required: true
+
+  - type: input
+    id: system
+    attributes:
+      label: Operating system and CPU
+      description: Include the CPU model. Core needs a CPU with AVX2, so please say whether yours supports it and whether it supports AVX-512.
+      placeholder: "Windows 11, Intel Core i7-13650HX (AVX2 yes, AVX-512 no)"
+    validations:
+      required: true
+
+  - type: textarea
+    id: mods
+    attributes:
+      label: Mods in your mods folder
+      description: Only if this happened inside Minecraft. Type the mods that were installed, one per line.
+      placeholder: |
+        Myelin 0.1.0
+        Sodium 0.6.0
+    validations:
+      required: false
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Describe the problem and what you expected to happen instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Start the game with ...
+        2. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or crash report
+      description: For a JVM crash inside the native library, attach the `hs_err_pid*.log` file. Otherwise attach latest.log or paste the relevant part if it is short.
+      render: text
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues and did not find this problem.
+          required: true

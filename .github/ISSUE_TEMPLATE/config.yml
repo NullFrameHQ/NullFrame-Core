@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Problem with Myelin
+    url: https://github.com/NullFrameHQ/myelin/issues/new/choose
+    about: Flight Mode, terrain in game, multiplayer and Myelin settings belong in Myelin's tracker.
+  - name: Hardware requirements
+    url: https://github.com/NullFrameHQ/NullFrame-Core#hardware-requirements
+    about: Core needs a CPU with AVX2. Check this first if the native library does not load.
+  - name: Using Core as a dependency
+    url: https://github.com/NullFrameHQ/NullFrame-Core#can-i-use-nullframe-core-to-build-on
+    about: How to add Core to your own project.
