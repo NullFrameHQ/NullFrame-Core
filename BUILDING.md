@@ -7,9 +7,10 @@ on Myelin, Fabric Loom or the old combined workspace.
 .\gradlew.bat build publishToMavenLocal
 ```
 
-This creates `build/libs/nullframe-core-0.1.1.jar` and publishes the library,
+This creates `build/libs/nullframe-core-<version>.jar` and publishes the library,
 sources and Maven metadata to your local Maven repository as
-`com.nullframe:nullframe-core:0.1.1`. Myelin can then resolve that version
+`com.nullframe:nullframe-core:<version>`, where `<version>` is the version in
+`build.gradle.kts`. Myelin can then resolve that version
 without including Core as a subproject.
 
 On Linux/macOS, use `./gradlew` instead (run `chmod +x gradlew` if needed).
