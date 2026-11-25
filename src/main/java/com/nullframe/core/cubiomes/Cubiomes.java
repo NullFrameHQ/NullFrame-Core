@@ -28,11 +28,22 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.DirectoryStream;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.PosixFilePermissions;
+import java.nio.file.attribute.UserPrincipal;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
+import java.util.HexFormat;
 import java.util.Locale;
+import java.util.Set;
 
 public class Cubiomes {
     private static native int nativeWriteCompactColumnsV1(long seed, int minBlockX, int minBlockZ,
@@ -974,20 +985,145 @@ public class Cubiomes {
         return null;
     }
 
+    /**
+     * Returns a path to the native library that the JVM can load.
+     *
+     * The library is copied out of the jar to a file whose name contains a hash of its contents,
+     * in a per-user folder under the system temp directory. If that file already exists with
+     * identical bytes it is reused, so there is one copy per library version instead of one per
+     * launch. Windows cannot delete a DLL that is still loaded, so the previous approach (a new
+     * temp file per launch plus deleteOnExit) left a copy behind every time. If the shared
+     * location cannot be used, this falls back to a unique temp file.
+     */
     private static Path extractNativeLibrary(String resourcePath) throws IOException {
         String suffix = resourcePath.endsWith(".dll")    ? ".dll"
                 : resourcePath.endsWith(".dylib")  ? ".dylib"
                   : ".so";
-        Path tempFile = Files.createTempFile("nullframe-cubiomes-", suffix);
-        tempFile.toFile().deleteOnExit();
+        byte[] library;
         try (InputStream stream = Cubiomes.class.getResourceAsStream(resourcePath)) {
             if (stream == null) {
                 throw new IOException("Native library missing from jar: " + resourcePath
                         + " — compile the C library with CMake and copy the output to "
                         + "src/main/resources/native/");
             }
-            Files.copy(stream, tempFile, StandardCopyOption.REPLACE_EXISTING);
+            library = stream.readAllBytes();
         }
+        try {
+            Path directory = privateNativeDirectory();
+            Path target = directory.resolve("cubiomes_bridge-" + contentHash(library) + suffix);
+            if (!hasContent(target, library)) {
+                writeNativeLibrary(directory, target, library, suffix);
+            }
+            // The bytes are verified on every start, so a replaced or damaged file is never loaded.
+            if (hasContent(target, library)) {
+                removeLegacyTempFiles();
+                return target;
+            }
+        } catch (IOException | RuntimeException e) {
+            LOGGER.warn("[NullFrameCore] Could not use the shared native library location, "
+                    + "using a temporary file instead.", e);
+        }
+        return extractToUniqueTempFile(library, suffix);
+    }
+
+    /** The old behaviour, kept as a fallback: one new temp file for this run. */
+    private static Path extractToUniqueTempFile(byte[] library, String suffix) throws IOException {
+        Path tempFile = Files.createTempFile("nullframe-cubiomes-", suffix);
+        tempFile.toFile().deleteOnExit();
+        Files.write(tempFile, library);
         return tempFile;
+    }
+
+    /** A folder under the temp directory that only the current user can change. */
+    private static Path privateNativeDirectory() throws IOException {
+        String user = System.getProperty("user.name", "user").replaceAll("[^A-Za-z0-9._-]", "_");
+        Path directory = Path.of(System.getProperty("java.io.tmpdir")).resolve("nullframe-core-" + user);
+        boolean posix = FileSystems.getDefault().supportedFileAttributeViews().contains("posix");
+        if (!posix) {
+            // Windows: the temp directory already belongs to the current user.
+            Files.createDirectories(directory);
+            return directory;
+        }
+        Files.createDirectories(directory, PosixFilePermissions.asFileAttribute(
+                PosixFilePermissions.fromString("rwx------")));
+        if (Files.isSymbolicLink(directory) || !Files.isDirectory(directory)) {
+            throw new IOException("Native library folder is not a plain directory: " + directory);
+        }
+        UserPrincipal self = FileSystems.getDefault().getUserPrincipalLookupService()
+                .lookupPrincipalByName(System.getProperty("user.name"));
+        Set<PosixFilePermission> permissions = Files.getPosixFilePermissions(directory);
+        if (!Files.getOwner(directory).equals(self)
+                || permissions.contains(PosixFilePermission.GROUP_WRITE)
+                || permissions.contains(PosixFilePermission.OTHERS_WRITE)) {
+            throw new IOException("Native library folder is not private: " + directory);
+        }
+        return directory;
+    }
+
+    /** Writes to a partial file first and renames it, so another instance never sees half a file. */
+    private static void writeNativeLibrary(Path directory, Path target, byte[] library, String suffix)
+            throws IOException {
+        Path partial = Files.createTempFile(directory, "partial-", suffix);
+        try {
+            Files.write(partial, library);
+            try {
+                Files.move(partial, target, StandardCopyOption.ATOMIC_MOVE);
+            } catch (AtomicMoveNotSupportedException e) {
+                Files.move(partial, target, StandardCopyOption.REPLACE_EXISTING);
+            }
+        } catch (IOException e) {
+            // Another instance may have created the same file at the same moment.
+            if (!hasContent(target, library)) throw e;
+        } finally {
+            try {
+                Files.deleteIfExists(partial);
+            } catch (IOException ignored) {
+                // Leave it; it is only a few hundred kilobytes in the temp folder.
+            }
+        }
+    }
+
+    private static boolean hasContent(Path file, byte[] expected) {
+        try {
+            return Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS)
+                    && Files.size(file) == expected.length
+                    && Arrays.equals(Files.readAllBytes(file), expected);
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
+    private static String contentHash(byte[] data) {
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256").digest(data);
+            return HexFormat.of().formatHex(digest, 0, 8);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    /**
+     * Removes copies left behind by earlier versions, which created a new file on every launch.
+     * Best effort: a file that is still in use by a running game cannot be deleted and is skipped.
+     */
+    private static void removeLegacyTempFiles() {
+        Path temp = Path.of(System.getProperty("java.io.tmpdir"));
+        int removed = 0;
+        try (DirectoryStream<Path> files = Files.newDirectoryStream(temp, "nullframe-cubiomes-*")) {
+            for (Path file : files) {
+                try {
+                    if (Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS) && Files.deleteIfExists(file)) {
+                        removed++;
+                    }
+                } catch (IOException ignored) {
+                    // In use by another running game; leave it.
+                }
+            }
+        } catch (IOException | RuntimeException ignored) {
+            // Cleaning up is optional.
+        }
+        if (removed > 0) {
+            LOGGER.info("[NullFrameCore] Removed {} leftover native library copies from the temp folder.", removed);
+        }
     }
 }
