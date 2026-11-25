@@ -61,7 +61,7 @@ body:
     attributes:
       label: Myelin version
       description: Only if you are using Core through Myelin.
-      placeholder: "0.1.0"
+      placeholder: "0.1.1"
     validations:
       required: false
 
@@ -73,6 +73,15 @@ body:
       placeholder: "openjdk version \"21.0.5\""
     validations:
       required: true
+
+  - type: input
+    id: loader-version
+    attributes:
+      label: Mod loader and version
+      description: Only if this happened inside Minecraft. Say whether you use Fabric or Quilt.
+      placeholder: "Fabric Loader 0.17.0"
+    validations:
+      required: false
 
   - type: input
     id: system
@@ -89,7 +98,7 @@ body:
       label: Mods in your mods folder
       description: Only if this happened inside Minecraft. Type the mods that were installed, one per line.
       placeholder: |
-        Myelin 0.1.0
+        Myelin 0.1.1
         Sodium 0.6.0
     validations:
       required: false
